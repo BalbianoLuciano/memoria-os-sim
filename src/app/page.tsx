@@ -88,7 +88,11 @@ export default function Page() {
           scrub={scrub}
         />
         <div className="flex-1 min-h-0">
-          <GanttChart cells={ganttCells} currentT={Math.max(0, t - 1)} />
+          <GanttChart
+            cells={ganttCells}
+            currentT={Math.max(0, t - 1)}
+            onSeek={scrub}
+          />
         </div>
       </footer>
 

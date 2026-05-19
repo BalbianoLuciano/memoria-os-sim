@@ -7,9 +7,10 @@ import { useT } from "./LanguageProvider";
 interface Props {
   cells: string[]; // por tick: pid | "IDLE" | "COMPACT"
   currentT: number;
+  onSeek?: (tick: number) => void;
 }
 
-export function GanttChart({ cells, currentT }: Props) {
+export function GanttChart({ cells, currentT, onSeek }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const { t } = useT();
   useEffect(() => {
@@ -41,10 +42,20 @@ export function GanttChart({ cells, currentT }: Props) {
           {cells.map((cell, i) => {
             const isCurrent = i === currentT;
             const bg = ganttCellStyle(cell);
+            const label =
+              cell === "IDLE"
+                ? t("cpu.idle")
+                : cell === "COMPACT"
+                ? t("events.compaction")
+                : cell;
             return (
-              <div
+              <button
                 key={i}
-                className="relative h-full w-[22px] shrink-0 border-r border-ink-900 flex items-end justify-center"
+                type="button"
+                onClick={() => onSeek?.(i + 1)}
+                title={`t=${i + 1} · ${label}`}
+                aria-label={`t=${i + 1} · ${label}`}
+                className="relative h-full w-[22px] shrink-0 border-r border-ink-900 flex items-end justify-center cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-neon-cyan focus:outline-none focus:ring-1 focus:ring-neon-cyan"
                 style={bg}
               >
                 {i % 5 === 0 && (
@@ -58,7 +69,7 @@ export function GanttChart({ cells, currentT }: Props) {
                 {isCurrent && (
                   <div className="absolute inset-y-0 left-0 right-0 ring-1 ring-neon-green pointer-events-none" />
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
