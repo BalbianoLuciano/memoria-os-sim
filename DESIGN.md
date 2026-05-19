@@ -1,28 +1,29 @@
 # DESIGN
 
-Sistema de diseño NVIDIA-inspired para Memoria-OS Sim.
+NVIDIA-inspired design system for Memoria-OS Sim.
 
-## Filosofía
+## Philosophy
 
-Estética de **terminal técnica**: negro profundo, verde NVIDIA como acento principal, tipografía mono para todo lo numérico, glow sutil en elementos activos. Cero gradientes morados, cero glassmorphism. El usuario tiene que sentir que está leyendo el output de una herramienta de bajo nivel.
+A **technical-terminal** aesthetic: deep black background, NVIDIA green as the primary accent, mono typography for every numeric reading, subtle glow on active elements. No purple gradients, no glassmorphism. The user should feel like they're reading the output of a low-level tool.
 
-## Tokens de color
+## Color tokens
 
-| Token           | Valor      | Uso |
+| Token           | Value      | Use |
 |-----------------|------------|-----|
-| `ink-950`       | `#050606`  | Fondo de página |
-| `ink-900`       | `#0a0c0a`  | Superficies primarias |
-| `ink-800`       | `#13161a`  | Cards, paneles, segmented controls |
-| `ink-700`       | `#1c2026`  | Bordes |
-| `neon-green`    | `#76B900`  | Acento NVIDIA — procesos activos, CTAs, foco |
-| `neon-cyan`     | `#22d3ee`  | Procesos secundarios, métricas |
-| `neon-magenta`  | `#ff2bd6`  | Compactación, eventos críticos |
-| `neon-amber`    | `#ffb020`  | Warnings, idle, zonas de fragmentación |
-| `neon-rose`     | `#ff5577`  | Errores, "no entra" |
+| `ink-950`       | `#050606`  | Page background |
+| `ink-900`       | `#0a0c0a`  | Primary surfaces |
+| `ink-800`       | `#13161a`  | Cards, panels, segmented controls |
+| `ink-700`       | `#1c2026`  | Borders |
+| `neon-green`    | `#76B900`  | NVIDIA accent — active processes, CTAs, focus |
+| `neon-cyan`     | `#22d3ee`  | Secondary processes, metrics |
+| `neon-magenta`  | `#ff2bd6`  | Compaction, critical events |
+| `neon-amber`    | `#ffb020`  | Warnings, idle, fragmentation regions |
+| `neon-rose`     | `#ff5577`  | Errors, "doesn't fit" |
+| `neon-violet`   | `#a78bfa`  | Language picker |
 
-## Paleta cíclica por proceso
+## Per-process palette
 
-8 acentos. Cada `pid` se mapea de forma determinística por el número final del identificador (`P1 → green`, `P2 → cyan`, …). El mismo color se reutiliza en: caja de memoria, cilindrito de wait-mem, celda del gantt, badge del event log, fila de la tabla de procesos.
+Eight neon accents, cycled deterministically by the trailing digit of the `pid` (`P1 → green`, `P2 → cyan`, …). The same color is reused across the memory block, the wait-queue cylinder, the gantt cell, the event-log badge, and the process-table row.
 
 | pid | color    |
 |-----|----------|
@@ -35,33 +36,33 @@ Estética de **terminal técnica**: negro profundo, verde NVIDIA como acento pri
 | P7  | violet   |
 | P8  | orange   |
 
-## Tipografía
+## Typography
 
-- **JetBrains Mono** — tablas, IDs, dimensiones en KB/MB, código.
-- **Inter** — prose, descripciones, ayuda.
-- Headlines en mono uppercase con `tracking-wider`, vibe terminal.
+- **JetBrains Mono** — tables, IDs, KB/MB sizes, code, anything technical.
+- **Inter** — prose, descriptions, help.
+- Headlines use mono uppercase with `tracking-wider` for the terminal vibe.
 
-## Efectos
+## Effects
 
-- Glow en bordes activos: `box-shadow: 0 0 18px -2px <hex with alpha>`.
-- Grid de fondo: dos `linear-gradient` 32px a 4% de alpha sobre verde.
-- Animaciones de Framer Motion para entrada/salida de bloques de memoria y cilindritos. Se desactivan con `prefers-reduced-motion`.
-- Sin `transition: all`. Sólo transiciones explícitas de opacidad, layout y color.
+- Glow on active borders: `box-shadow: 0 0 18px -2px <hex with alpha>`.
+- Background grid: two 32px `linear-gradient`s at 4% alpha over green.
+- Framer Motion transitions for memory blocks entering / leaving. Disabled under `prefers-reduced-motion`.
+- No `transition: all`. Only explicit opacity / layout / color transitions.
 
 ## Layout
 
-Toda la app vive en `100vh × 100vw`, sin scroll de página. Los paneles internos hacen scroll cuando necesitan. Tres columnas en el modo Contiguo: izquierda (config + procesos, 320px), centro (memoria + cola), derecha (stats + log, 320px). Timeline + Gantt como footer fijo de 140px.
+The whole app lives in `100vh × 100vw`, no page scroll. Internal panels scroll when they need to. Contiguous mode uses three columns: left (config + processes, 320px), center (memory + queue), right (stats + log, 320px). Timeline + Gantt sit as a 140px fixed footer.
 
-## Accesibilidad
+## Accessibility
 
-- Contraste mínimo AA en todos los textos sobre `ink-950` y `ink-900`.
-- Foco visible con `ring` neón en botones, inputs y controles.
-- `aria-live="polite"` en el event log.
-- Atajos de teclado para play/pause/step/reset.
-- Inputs aceptan tanto KB como `64 MB` (con prefijo de unidad).
+- Minimum AA contrast for all text on `ink-950` and `ink-900`.
+- Visible neon focus ring on buttons, inputs and controls.
+- `aria-live="polite"` on the event log.
+- Keyboard shortcuts for play / pause / step / reset.
+- Inputs accept both KB and `64 MB` (with unit prefix).
 
-## Reglas
+## Rules
 
-1. No introducir nuevos tonos sin agregarlos al token set.
-2. Las animaciones nunca obstruyen la lectura del tick actual.
-3. El gantt y la columna de memoria siempre comparten paleta — leer el gantt tiene que ser leer la memoria.
+1. No new tones without adding them to the token set.
+2. Animations never obstruct reading the current tick.
+3. The gantt and the memory column always share the palette — reading the gantt should *be* reading the memory.
