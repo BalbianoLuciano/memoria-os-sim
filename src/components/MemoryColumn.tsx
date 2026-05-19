@@ -11,9 +11,10 @@ interface Props {
   total: number;
   unit: Unit;
   scheme: "mft" | "mvt";
+  running: string | null;
 }
 
-export function MemoryColumn({ slots, total, unit, scheme }: Props) {
+export function MemoryColumn({ slots, total, unit, scheme, running }: Props) {
   const { t } = useT();
   return (
     <div className="flex flex-col h-full w-full max-w-[260px] mx-auto">
@@ -55,12 +56,27 @@ export function MemoryColumn({ slots, total, unit, scheme }: Props) {
                   </div>
                 ) : slot.occupiedBy ? (
                   <div
-                    className="h-full w-full relative flex items-center justify-center"
+                    className={`h-full w-full relative flex items-center justify-center ${
+                      slot.occupiedBy === running ? "animate-pulse-soft" : ""
+                    }`}
                     style={{
-                      backgroundColor: color!.hex + "22",
-                      boxShadow: `inset 0 0 0 1px ${color!.hex}55`,
+                      backgroundColor:
+                        color!.hex + (slot.occupiedBy === running ? "44" : "22"),
+                      boxShadow:
+                        slot.occupiedBy === running
+                          ? `inset 0 0 0 2px ${color!.hex}, 0 0 24px -2px ${color!.shadow}`
+                          : `inset 0 0 0 1px ${color!.hex}55`,
                     }}
                   >
+                    {slot.occupiedBy === running && (
+                      <span
+                        aria-hidden
+                        className="absolute left-1 top-1 text-[10px] font-mono"
+                        style={{ color: color!.hex }}
+                      >
+                        ▶
+                      </span>
+                    )}
                     <div className="text-center font-mono">
                       <div
                         className="text-xs font-bold"

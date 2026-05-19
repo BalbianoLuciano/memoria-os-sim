@@ -97,6 +97,7 @@ export function ContiguousMode({
             total={config.totalMemoryKB}
             unit={unit}
             scheme={config.scheme}
+            running={snap.gantt === "COMPACT" ? null : snap.running}
           />
           <div className="mt-3 flex justify-center">
             <CpuBadge running={snap.running} ganttCell={snap.gantt} />
