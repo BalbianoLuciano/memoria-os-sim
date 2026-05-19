@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Inter } from "next/font/google";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { SmallScreenGate } from "@/components/SmallScreenGate";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,7 +28,10 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${jetbrains.variable}`}>
       <body className="font-sans antialiased">
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          {children}
+          <SmallScreenGate />
+        </LanguageProvider>
       </body>
     </html>
   );
