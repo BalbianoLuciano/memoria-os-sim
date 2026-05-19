@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { computePaging, translate } from "@/lib/paging";
+import { useT } from "./LanguageProvider";
 
 export function PagingMode() {
+  const { t } = useT();
   const [pBits, setPBits] = useState(4);
   const [dBits, setDBits] = useState(10);
   const [sizeKB, setSizeKB] = useState(12);
@@ -37,9 +39,9 @@ export function PagingMode() {
     <div className="grid grid-cols-[320px_1fr] gap-4 h-full p-4 overflow-hidden">
       <div className="space-y-3 overflow-y-auto scrollbar-thin pr-2 text-xs">
         <h2 className="font-mono uppercase tracking-wider text-neon-green text-sm">
-          paginación
+          {t("paging.title")}
         </h2>
-        <Field label={`P (bits de página)`}>
+        <Field label={t("paging.pBits")}>
           <input
             type="number"
             min={1}
@@ -49,7 +51,7 @@ export function PagingMode() {
             className="w-full bg-ink-800 border border-ink-700 rounded px-2 py-1 font-mono"
           />
         </Field>
-        <Field label={`D (bits de desplazamiento)`}>
+        <Field label={t("paging.dBits")}>
           <input
             type="number"
             min={1}
@@ -59,7 +61,7 @@ export function PagingMode() {
             className="w-full bg-ink-800 border border-ink-700 rounded px-2 py-1 font-mono"
           />
         </Field>
-        <Field label="tamaño del proceso (KB)">
+        <Field label={t("paging.processSize")}>
           <input
             type="number"
             min={1}
@@ -68,14 +70,14 @@ export function PagingMode() {
             className="w-full bg-ink-800 border border-ink-700 rounded px-2 py-1 font-mono"
           />
         </Field>
-        <Field label="marcos libres (coma)">
+        <Field label={t("paging.freeFrames")}>
           <input
             value={freeFrames}
             onChange={(e) => setFreeFrames(e.target.value)}
             className="w-full bg-ink-800 border border-ink-700 rounded px-2 py-1 font-mono"
           />
         </Field>
-        <Field label="dirección lógica (binario o decimal)">
+        <Field label={t("paging.logicalAddr")}>
           <input
             value={logical}
             onChange={(e) => setLogical(e.target.value)}
@@ -84,15 +86,13 @@ export function PagingMode() {
         </Field>
 
         <div className="border-t border-ink-800 pt-2 space-y-1 font-mono text-[11px] text-zinc-300">
-          <div>páginas direccionables: {result.pageCount}</div>
-          <div>tamaño página: {result.pageSizeWords} palabras</div>
-          <div>
-            espacio total direccionable: {result.totalAddrSpaceWords} palabras
-          </div>
-          <div>páginas que necesita: {result.pagesNeeded}</div>
+          <div>{t("paging.addressablePages", { n: result.pageCount })}</div>
+          <div>{t("paging.pageSize", { n: result.pageSizeWords })}</div>
+          <div>{t("paging.totalAddr", { n: result.totalAddrSpaceWords })}</div>
+          <div>{t("paging.pagesNeeded", { n: result.pagesNeeded })}</div>
           {result.unassigned > 0 && (
             <div className="text-neon-rose">
-              {result.unassigned} página(s) sin marco libre
+              {t("paging.unassigned", { n: result.unassigned })}
             </div>
           )}
         </div>
@@ -101,14 +101,14 @@ export function PagingMode() {
       <div className="flex flex-col gap-4 overflow-hidden">
         <div className="flex-1 overflow-auto scrollbar-thin border border-ink-800 rounded-md p-3">
           <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
-            tabla de páginas
+            {t("paging.table")}
           </div>
           <table className="w-full font-mono text-xs">
             <thead className="text-[10px] uppercase text-zinc-500">
               <tr>
-                <th className="text-left pb-1">página</th>
-                <th className="text-left pb-1">marco</th>
-                <th className="text-left pb-1">base física</th>
+                <th className="text-left pb-1">{t("paging.col.page")}</th>
+                <th className="text-left pb-1">{t("paging.col.frame")}</th>
+                <th className="text-left pb-1">{t("paging.col.physBase")}</th>
               </tr>
             </thead>
             <tbody>
@@ -128,21 +128,23 @@ export function PagingMode() {
         {translation && (
           <div className="border border-ink-800 rounded-md p-3 text-xs font-mono space-y-1">
             <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-              traducción
+              {t("paging.translation")}
             </div>
             <div className="text-zinc-300">
-              lógica:{" "}
+              {t("paging.logical")}{" "}
               <span className="text-neon-cyan">
                 {splitBits(translation.bitsLogical, dBits)}
               </span>{" "}
               ({translation.logical})
             </div>
-            <div>página = {translation.page}, offset = {translation.offset}</div>
+            <div>
+              {t("paging.page_eq", { p: translation.page, o: translation.offset })}
+            </div>
             {translation.frame !== null ? (
               <>
-                <div>marco = {translation.frame}</div>
+                <div>{t("paging.frame_eq", { f: translation.frame })}</div>
                 <div className="text-zinc-300">
-                  física:{" "}
+                  {t("paging.physical")}{" "}
                   <span className="text-neon-green">
                     {splitBits(translation.bitsPhysical!, dBits)}
                   </span>{" "}
@@ -150,7 +152,7 @@ export function PagingMode() {
                 </div>
               </>
             ) : (
-              <div className="text-neon-rose">página sin marco asignado</div>
+              <div className="text-neon-rose">{t("paging.noFrame")}</div>
             )}
           </div>
         )}

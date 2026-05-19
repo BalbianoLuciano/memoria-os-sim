@@ -8,6 +8,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useEffect } from "react";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   t: number;
@@ -36,6 +37,7 @@ export function TimelineControls({
   reset,
   scrub,
 }: Props) {
+  const { t: tr } = useT();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -66,28 +68,28 @@ export function TimelineControls({
     <div className="flex items-center gap-3 px-2">
       <button
         onClick={reset}
-        aria-label="Reset"
+        aria-label={tr("timeline.reset")}
         className="p-1.5 rounded text-zinc-400 hover:text-neon-green hover:bg-ink-800"
       >
         <RotateCcw size={16} />
       </button>
       <button
         onClick={() => step(-1)}
-        aria-label="Paso atrás"
+        aria-label={tr("timeline.stepBack")}
         className="p-1.5 rounded text-zinc-400 hover:text-neon-green hover:bg-ink-800"
       >
         <StepBack size={16} />
       </button>
       <button
         onClick={playing ? pause : play}
-        aria-label={playing ? "Pausar" : "Reproducir"}
+        aria-label={playing ? tr("timeline.pause") : tr("timeline.play")}
         className="p-1.5 rounded bg-neon-green/15 text-neon-green hover:bg-neon-green/25 shadow-glow-green"
       >
         {playing ? <Pause size={16} /> : <Play size={16} />}
       </button>
       <button
         onClick={() => step(1)}
-        aria-label="Paso adelante"
+        aria-label={tr("timeline.stepForward")}
         className="p-1.5 rounded text-zinc-400 hover:text-neon-green hover:bg-ink-800"
       >
         <StepForward size={16} />
@@ -100,7 +102,7 @@ export function TimelineControls({
         value={t}
         onChange={(e) => scrub(parseInt(e.target.value, 10))}
         className="flex-1 accent-neon-green"
-        aria-label="Scrub"
+        aria-label={tr("timeline.scrub")}
       />
 
       <div className="font-mono text-[10px] text-zinc-400 w-20 text-right">

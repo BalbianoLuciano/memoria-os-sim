@@ -2,6 +2,7 @@
 
 import { toDisplay, type Unit } from "@/lib/units";
 import type { Snapshot } from "@/lib/types";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   snapshot: Snapshot;
@@ -9,31 +10,32 @@ interface Props {
 }
 
 export function StatsPanel({ snapshot, unit }: Props) {
+  const { t } = useT();
   return (
     <div className="space-y-2 text-xs font-mono">
-      <Stat label="tick" value={`${snapshot.t}`} />
+      <Stat label={t("stats.tick")} value={`${snapshot.t}`} />
       <Stat
-        label="frag. interna"
+        label={t("stats.fragInternal")}
         value={toDisplay(snapshot.fragInternal, unit)}
         accent="amber"
       />
       <Stat
-        label="frag. externa"
+        label={t("stats.fragExternal")}
         value={toDisplay(snapshot.fragExternal, unit)}
         accent="amber"
       />
       <Stat
-        label="libre total"
+        label={t("stats.freeTotal")}
         value={toDisplay(snapshot.freeTotal, unit)}
         accent="cyan"
       />
       <Stat
-        label="wait-mem"
+        label={t("stats.waitMem")}
         value={`${snapshot.waitQueue.length}`}
         accent="rose"
       />
       <Stat
-        label="ready"
+        label={t("stats.ready")}
         value={`${snapshot.readyQueue.length}`}
         accent="green"
       />

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { colorFor } from "@/lib/colors";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   cells: string[]; // por tick: pid | "IDLE" | "COMPACT"
@@ -10,6 +11,7 @@ interface Props {
 
 export function GanttChart({ cells, currentT }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useT();
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -25,10 +27,10 @@ export function GanttChart({ cells, currentT }: Props) {
     <div className="w-full h-full flex flex-col">
       <div className="flex items-center gap-2 mb-1">
         <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-          gantt
+          {t("gantt.label")}
         </span>
         <span className="font-mono text-[10px] text-zinc-600">
-          {cells.length} ticks
+          {t("gantt.ticks", { n: cells.length })}
         </span>
       </div>
       <div

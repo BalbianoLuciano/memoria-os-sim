@@ -4,6 +4,7 @@ import { Trash2, Plus } from "lucide-react";
 import { colorFor } from "@/lib/colors";
 import { toDisplay, parseKB, type Unit } from "@/lib/units";
 import type { ProcessSpec } from "@/lib/types";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   processes: ProcessSpec[];
@@ -18,6 +19,8 @@ export function ProcessTable({
   unit,
   showPriority,
 }: Props) {
+  const { t } = useT();
+
   function update(idx: number, patch: Partial<ProcessSpec>) {
     const copy = processes.map((p, i) => (i === idx ? { ...p, ...patch } : p));
     setProcesses(copy);
@@ -41,13 +44,13 @@ export function ProcessTable({
     <div className="flex flex-col gap-2 text-xs h-full">
       <div className="flex items-center justify-between">
         <span className="font-mono uppercase tracking-wider text-zinc-500">
-          procesos
+          {t("table.processes")}
         </span>
         <button
           onClick={add}
           className="flex items-center gap-1 px-2 py-1 rounded bg-neon-green/10 text-neon-green hover:bg-neon-green/20 text-[10px] font-mono"
         >
-          <Plus size={12} /> agregar
+          <Plus size={12} /> {t("btn.add")}
         </button>
       </div>
 
@@ -55,11 +58,13 @@ export function ProcessTable({
         <table className="w-full font-mono">
           <thead className="text-[9px] uppercase text-zinc-500">
             <tr>
-              <th className="text-left pb-1">ID</th>
-              <th className="text-right pb-1">TA</th>
-              <th className="text-right pb-1">TR</th>
-              <th className="text-right pb-1">tam</th>
-              {showPriority && <th className="text-right pb-1">pr</th>}
+              <th className="text-left pb-1">{t("table.col.id")}</th>
+              <th className="text-right pb-1">{t("table.col.arrival")}</th>
+              <th className="text-right pb-1">{t("table.col.burst")}</th>
+              <th className="text-right pb-1">{t("table.col.size")}</th>
+              {showPriority && (
+                <th className="text-right pb-1">{t("table.col.priority")}</th>
+              )}
               <th></th>
             </tr>
           </thead>
@@ -107,10 +112,7 @@ export function ProcessTable({
                       onBlur={(e) => {
                         const kb = parseKB(e.target.value);
                         if (kb !== null) update(idx, { size: kb });
-                        e.target.value = toDisplay(
-                          kb ?? p.size,
-                          unit
-                        );
+                        e.target.value = toDisplay(kb ?? p.size, unit);
                       }}
                       key={`${p.size}-${unit}`}
                       className="w-20 bg-transparent px-1 py-0.5 text-right text-zinc-200"
@@ -133,7 +135,7 @@ export function ProcessTable({
                   <td className="text-right">
                     <button
                       onClick={() => remove(idx)}
-                      aria-label={`Borrar ${p.id}`}
+                      aria-label={t("table.delete", { pid: p.id })}
                       className="p-0.5 text-zinc-600 hover:text-neon-rose"
                     >
                       <Trash2 size={12} />

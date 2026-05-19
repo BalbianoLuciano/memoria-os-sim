@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { colorFor } from "@/lib/colors";
 import type { ProcessRuntime } from "@/lib/types";
 import { toDisplay, type Unit } from "@/lib/units";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   pids: string[];
@@ -12,10 +13,11 @@ interface Props {
 }
 
 export function WaitQueue({ pids, processes, unit }: Props) {
+  const { t } = useT();
   return (
     <div className="flex flex-col items-center gap-2 h-full justify-start pt-6">
       <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-        wait-mem
+        {t("waitqueue.label")}
       </span>
       <div className="flex flex-col gap-2 items-center overflow-y-auto scrollbar-thin">
         <AnimatePresence>

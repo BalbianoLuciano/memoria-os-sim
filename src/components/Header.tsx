@@ -2,6 +2,8 @@
 
 import { Cpu, HelpCircle } from "lucide-react";
 import type { Unit } from "@/lib/units";
+import { useT } from "./LanguageProvider";
+import { LANGS, LANG_LABEL } from "@/lib/i18n";
 
 export type AppMode = "contiguous" | "paging" | "replacement";
 
@@ -13,13 +15,14 @@ interface Props {
   onHelp: () => void;
 }
 
-const MODES: { id: AppMode; label: string }[] = [
-  { id: "contiguous", label: "Contiguo" },
-  { id: "paging", label: "Paginación" },
-  { id: "replacement", label: "Reemplazo" },
-];
-
 export function Header({ mode, setMode, unit, setUnit, onHelp }: Props) {
+  const { t, lang, setLang } = useT();
+  const MODES: { id: AppMode; key: "header.contiguous" | "header.paging" | "header.replacement" }[] = [
+    { id: "contiguous", key: "header.contiguous" },
+    { id: "paging", key: "header.paging" },
+    { id: "replacement", key: "header.replacement" },
+  ];
+
   return (
     <header className="h-14 shrink-0 border-b border-ink-800 bg-ink-900/80 backdrop-blur flex items-center px-4 gap-4">
       <div className="flex items-center gap-2">
@@ -32,7 +35,7 @@ export function Header({ mode, setMode, unit, setUnit, onHelp }: Props) {
 
       <nav
         role="tablist"
-        aria-label="Modos de simulación"
+        aria-label={t("header.modes")}
         className="flex bg-ink-800 rounded-md p-1 ml-2 text-xs"
       >
         {MODES.map((m) => (
@@ -47,12 +50,32 @@ export function Header({ mode, setMode, unit, setUnit, onHelp }: Props) {
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
-            {m.label}
+            {t(m.key)}
           </button>
         ))}
       </nav>
 
       <div className="ml-auto flex items-center gap-3 text-xs font-mono">
+        <div
+          className="flex bg-ink-800 rounded-md p-1"
+          role="group"
+          aria-label={t("header.lang")}
+        >
+          {LANGS.map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-2 py-1 rounded ${
+                lang === l
+                  ? "bg-neon-violet/15 text-neon-violet"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+              aria-pressed={lang === l}
+            >
+              {LANG_LABEL[l]}
+            </button>
+          ))}
+        </div>
         <div className="flex bg-ink-800 rounded-md p-1">
           {(["KB", "MB"] as Unit[]).map((u) => (
             <button
@@ -72,7 +95,7 @@ export function Header({ mode, setMode, unit, setUnit, onHelp }: Props) {
         <button
           onClick={onHelp}
           className="p-1.5 rounded hover:bg-ink-800 text-zinc-400 hover:text-neon-green"
-          aria-label="Ayuda"
+          aria-label={t("header.help")}
         >
           <HelpCircle size={16} />
         </button>

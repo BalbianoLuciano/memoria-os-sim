@@ -1,6 +1,7 @@
 "use client";
 
 import { colorFor } from "@/lib/colors";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   running: string | null;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function CpuBadge({ running, ganttCell }: Props) {
+  const { t } = useT();
   if (ganttCell === "COMPACT") {
     return (
       <div className="px-3 py-1.5 rounded-md font-mono text-xs bg-neon-magenta/10 text-neon-magenta border border-neon-magenta/50 shadow-glow-magenta animate-pulse-soft">
@@ -18,7 +20,7 @@ export function CpuBadge({ running, ganttCell }: Props) {
   if (!running) {
     return (
       <div className="px-3 py-1.5 rounded-md font-mono text-xs bg-ink-800 text-zinc-500 border border-ink-700">
-        CPU · idle
+        CPU · {t("cpu.idle")}
       </div>
     );
   }

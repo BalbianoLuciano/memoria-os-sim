@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { toDisplay, parseKB, type Unit } from "@/lib/units";
 import type { ContiguousConfig } from "@/lib/types";
 import { PRESETS } from "@/lib/presets";
+import { useT } from "./LanguageProvider";
 
 interface Props {
   config: ContiguousConfig;
@@ -13,11 +14,12 @@ interface Props {
 }
 
 export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
+  const { t } = useT();
   return (
     <div className="flex flex-col gap-3 text-xs h-full overflow-y-auto scrollbar-thin pr-1">
       <div>
         <label className="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">
-          preset
+          {t("config.preset")}
         </label>
         <select
           onChange={(e) => onLoadPreset(e.target.value)}
@@ -25,17 +27,17 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
           className="w-full bg-ink-800 border border-ink-700 rounded px-2 py-1 text-zinc-200"
         >
           <option value="" disabled>
-            cargar…
+            {t("config.preset.load")}
           </option>
           {PRESETS.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.label}
+              {t(p.labelKey)}
             </option>
           ))}
         </select>
       </div>
 
-      <Field label="esquema">
+      <Field label={t("config.scheme")}>
         <Segmented
           value={config.scheme}
           options={[
@@ -48,7 +50,7 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
         />
       </Field>
 
-      <Field label="política de ajuste">
+      <Field label={t("config.fit")}>
         <Segmented
           value={config.fit}
           options={[
@@ -62,7 +64,7 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
         />
       </Field>
 
-      <Field label="planificador cpu">
+      <Field label={t("config.cpu")}>
         <Segmented
           value={config.cpu}
           options={[
@@ -78,7 +80,7 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
       </Field>
 
       {config.cpu === "rr" && (
-        <Field label="quantum">
+        <Field label={t("config.quantum")}>
           <input
             type="number"
             min={1}
@@ -94,7 +96,7 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
         </Field>
       )}
 
-      <Field label="memoria total">
+      <Field label={t("config.totalMemory")}>
         <UnitInput
           valueKB={config.totalMemoryKB}
           unit={unit}
@@ -102,7 +104,7 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
         />
       </Field>
 
-      <Field label="tamaño SO">
+      <Field label={t("config.osSize")}>
         <UnitInput
           valueKB={config.osSizeKB}
           unit={unit}
@@ -115,7 +117,7 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
       ) : (
         <div className="flex items-center justify-between border border-ink-800 rounded px-2 py-1.5">
           <span className="font-mono text-[11px] text-zinc-300">
-            compactación
+            {t("config.compaction")}
           </span>
           <button
             onClick={() =>
@@ -127,7 +129,9 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
                 : "bg-ink-800 text-zinc-500"
             }`}
           >
-            {config.compaction ? "on" : "off"}
+            {config.compaction
+              ? t("config.compaction.on")
+              : t("config.compaction.off")}
           </button>
         </div>
       )}
@@ -211,11 +215,12 @@ function Partitions({
   setConfig: (c: ContiguousConfig) => void;
   unit: Unit;
 }) {
+  const { t } = useT();
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-          particiones
+          {t("config.partitions")}
         </span>
         <button
           onClick={() =>
@@ -226,7 +231,7 @@ function Partitions({
           }
           className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-neon-green/10 text-neon-green text-[10px] font-mono"
         >
-          <Plus size={10} /> agregar
+          <Plus size={10} /> {t("btn.add")}
         </button>
       </div>
       <div className="flex flex-col gap-1">
@@ -256,7 +261,7 @@ function Partitions({
                 })
               }
               className="text-zinc-600 hover:text-neon-rose"
-              aria-label="Borrar partición"
+              aria-label={t("config.partitions.delete")}
             >
               <Trash2 size={12} />
             </button>

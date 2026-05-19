@@ -1,9 +1,10 @@
 import type { ContiguousConfig, ProcessSpec } from "./types";
+import type { Key } from "./i18n";
 
 export interface Preset {
   id: string;
-  label: string;
-  description: string;
+  labelKey: Key;
+  descKey: Key;
   config: ContiguousConfig;
   processes: ProcessSpec[];
 }
@@ -11,9 +12,8 @@ export interface Preset {
 export const PRESETS: Preset[] = [
   {
     id: "whiteboard-fcfs-mft-ff",
-    label: "Pizarrón: FCFS + MFT + First-Fit",
-    description:
-      "Caso del pizarrón de la cátedra. Particiones [12288, 8192, 8192, 4096, 5120].",
+    labelKey: "preset.whiteboard.label",
+    descKey: "preset.whiteboard.desc",
     config: {
       totalMemoryKB: 65536,
       osSizeKB: 27648,
@@ -36,9 +36,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "ej-2-fcfs-mvt-ff",
-    label: "Ej. 2: MVT + First-Fit",
-    description:
-      "Memoria fragmentada inicial. Ideal para comparar FF/BF/WF y la compactación.",
+    labelKey: "preset.ej2.label",
+    descKey: "preset.ej2.desc",
     config: {
       totalMemoryKB: 1024,
       osSizeKB: 100,
@@ -61,8 +60,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "ej-5a-mft-ff-fcfs",
-    label: "Ej. 5a: MFT + First-Fit + FCFS",
-    description: "Particiones fijas con quantum no aplicable (FCFS).",
+    labelKey: "preset.ej5a.label",
+    descKey: "preset.ej5a.desc",
     config: {
       totalMemoryKB: 32768,
       osSizeKB: 4096,
@@ -84,8 +83,8 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "ej-6-mft-bf-rr",
-    label: "Ej. 6: MFT + Best-Fit + RR (q=4)",
-    description: "Round Robin con quantum 4 sobre MFT/Best-Fit.",
+    labelKey: "preset.ej6.label",
+    descKey: "preset.ej6.desc",
     config: {
       totalMemoryKB: 32768,
       osSizeKB: 4096,

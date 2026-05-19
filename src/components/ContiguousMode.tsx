@@ -8,8 +8,10 @@ import { WaitQueue } from "./WaitQueue";
 import { CpuBadge } from "./CpuBadge";
 import { StatsPanel } from "./StatsPanel";
 import { EventLog } from "./EventLog";
+import { useT } from "./LanguageProvider";
 import { simulate } from "@/lib/contiguousSim";
 import { PRESETS } from "@/lib/presets";
+import { translateWarning } from "@/lib/i18n";
 import type { ContiguousConfig, ProcessSpec, Snapshot } from "@/lib/types";
 import type { Unit } from "@/lib/units";
 
@@ -39,6 +41,7 @@ export function ContiguousMode({
   warnings,
 }: Props) {
   const [tab, setTab] = useState<LeftTab>("config");
+  const { t: tr, lang } = useT();
   const snap = snapshots[t] ?? snapshots[snapshots.length - 1];
 
   return (
@@ -56,7 +59,7 @@ export function ContiguousMode({
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {id}
+              {id === "config" ? tr("mode.tab.config") : tr("mode.tab.processes")}
             </button>
           ))}
         </div>
@@ -80,7 +83,7 @@ export function ContiguousMode({
         {warnings.length > 0 && (
           <div className="mt-2 border border-neon-rose/40 bg-neon-rose/10 rounded p-2 text-[10px] font-mono text-neon-rose space-y-0.5 max-h-24 overflow-y-auto scrollbar-thin">
             {warnings.map((w, i) => (
-              <div key={i}>• {w}</div>
+              <div key={i}>• {translateWarning(w, lang)}</div>
             ))}
           </div>
         )}
