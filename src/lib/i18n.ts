@@ -128,14 +128,9 @@ export const DICT = {
     pt: "Melhor em um computador",
   },
   "smallscreen.body": {
-    es: "Este simulador muestra muchos paneles densos (memoria, procesos, gantt, estadísticas) y está pensado para pantallas grandes. En móvil vas a tener que hacer mucho zoom y scroll.",
-    en: "This simulator shows several dense panels (memory, processes, gantt, stats) and is designed for large screens. On mobile you'll need a lot of zoom and scrolling.",
-    pt: "Este simulador mostra vários painéis densos (memória, processos, gantt, estatísticas) e foi pensado para telas grandes. No celular você precisará de muito zoom e rolagem.",
-  },
-  "smallscreen.continue": {
-    es: "Continuar igual",
-    en: "Continue anyway",
-    pt: "Continuar mesmo assim",
+    es: "Este simulador muestra varios paneles densos en simultáneo (memoria, procesos, gantt, estadísticas) y solo tiene sentido en pantallas grandes. Volvé a abrirlo desde una computadora.",
+    en: "This simulator shows several dense panels at once (memory, processes, gantt, stats) and only makes sense on large screens. Please open it on a computer.",
+    pt: "Este simulador mostra vários painéis densos ao mesmo tempo (memória, processos, gantt, estatísticas) e só faz sentido em telas grandes. Abra-o em um computador.",
   },
 
   // paginación
