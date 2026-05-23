@@ -28,6 +28,7 @@ export const DICT = {
   "config.totalMemory": { es: "memoria total", en: "total memory", pt: "memória total" },
   "config.osSize": { es: "tamaño SO", en: "OS size", pt: "tamanho SO" },
   "config.partitions": { es: "particiones", en: "partitions", pt: "partições" },
+  "config.pageSize": { es: "tamaño de página", en: "page size", pt: "tamanho da página" },
   "config.partitions.delete": { es: "Borrar partición", en: "Delete partition", pt: "Apagar partição" },
   "config.compaction": { es: "compactación", en: "compaction", pt: "compactação" },
   "config.compaction.on": { es: "on", en: "on", pt: "on" },
@@ -42,6 +43,12 @@ export const DICT = {
   "table.col.burst": { es: "TR", en: "BT", pt: "TR" },
   "table.col.size": { es: "tam", en: "size", pt: "tam" },
   "table.col.priority": { es: "pr", en: "pr", pt: "pr" },
+  "table.col.segments": { es: "segmentos", en: "segments", pt: "segmentos" },
+  "table.col.segments.placeholder": {
+    es: "ej. 4K, 2K, 1K",
+    en: "e.g. 4K, 2K, 1K",
+    pt: "ex. 4K, 2K, 1K",
+  },
   "table.delete": { es: "Borrar {pid}", en: "Delete {pid}", pt: "Apagar {pid}" },
 
   // memoria
@@ -198,6 +205,11 @@ export const DICT = {
   "warn.partsExceed": { es: "La suma de particiones excede la memoria utilizable.", en: "Partition sum exceeds usable memory.", pt: "A soma das partições excede a memória utilizável." },
   "warn.quantum": { es: "El quantum debe ser > 0 para Round Robin.", en: "Quantum must be > 0 for Round Robin.", pt: "O quantum deve ser > 0 para Round Robin." },
   "warn.noProcesses": { es: "Ingresá al menos un proceso.", en: "Add at least one process.", pt: "Adicione ao menos um processo." },
+  "warn.pageSize": {
+    es: "El tamaño de página debe ser > 0.",
+    en: "Page size must be > 0.",
+    pt: "O tamanho da página deve ser > 0.",
+  },
   "warn.tooBig": {
     es: "{pid} ({k}K) no entra en la memoria utilizable.",
     en: "{pid} ({k}K) doesn't fit in usable memory.",
@@ -245,6 +257,26 @@ export const DICT = {
     en: "Round Robin with quantum 4 on MFT/Best-Fit.",
     pt: "Round Robin com quantum 4 em MFT/Best-Fit.",
   },
+  "preset.paging.label": {
+    es: "Paginación: 4K/marco + FCFS",
+    en: "Paging: 4K/frame + FCFS",
+    pt: "Paginação: 4K/quadro + FCFS",
+  },
+  "preset.paging.desc": {
+    es: "64K de memoria, 14 marcos de 4K. Cada proceso se divide en páginas y se asigna a marcos libres no contiguos.",
+    en: "64K memory, 14 frames of 4K. Each process splits into pages assigned to non-contiguous free frames.",
+    pt: "64K de memória, 14 quadros de 4K. Cada processo se divide em páginas atribuídas a quadros livres não contíguos.",
+  },
+  "preset.seg.label": {
+    es: "Segmentación: BF + compactación",
+    en: "Segmentation: BF + compaction",
+    pt: "Segmentação: BF + compactação",
+  },
+  "preset.seg.desc": {
+    es: "Cada proceso tiene 3 segmentos (CODE/DATA/STACK). Cada segmento entra en un hueco distinto (Best-Fit), con compactación habilitada.",
+    en: "Each process has 3 segments (CODE/DATA/STACK). Each fits in its own hole (Best-Fit), with compaction enabled.",
+    pt: "Cada processo tem 3 segmentos (CODE/DATA/STACK). Cada um cabe num buraco distinto (Best-Fit), com compactação habilitada.",
+  },
 } as const;
 
 export type Key = keyof typeof DICT;
@@ -277,6 +309,8 @@ export function translateWarning(raw: string, lang: Lang): string {
     return translate("warn.quantum", lang);
   if (raw === "Ingresá al menos un proceso.")
     return translate("warn.noProcesses", lang);
+  if (raw === "El tamaño de página debe ser > 0.")
+    return translate("warn.pageSize", lang);
   const m = raw.match(/^(P\w+) \((\d+)K\) no entra en la memoria utilizable\.$/);
   if (m) return translate("warn.tooBig", lang, { pid: m[1], k: m[2] });
   return raw;
