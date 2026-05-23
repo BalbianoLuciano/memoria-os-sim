@@ -13,8 +13,11 @@ export interface ProcessSpec {
   id: ProcessId;
   arrival: number; // TA — tiempo de arribo
   burst: number; // TR — duración total de CPU
-  size: number; // KB — tamaño en memoria
+  size: number; // KB — tamaño en memoria (para segmentación: suma de segmentos)
   priority?: number; // menor = más prioritario
+  // Para esquema "segmentation": tamaños de cada módulo/segmento (KB).
+  // Si no se especifica, se asume un único segmento del tamaño total.
+  segments?: number[];
   // TI (tiempo de inicio) y TF (tiempo de fin) son resultados de la sim.
 }
 
@@ -27,7 +30,7 @@ export interface ProcessRuntime {
 }
 
 export type FitPolicy = "first" | "best" | "worst";
-export type Scheme = "mft" | "mvt";
+export type Scheme = "mft" | "mvt" | "paging" | "segmentation";
 export type CpuPolicy = "fcfs" | "rr" | "sjf" | "priority";
 
 export interface ContiguousConfig {
@@ -37,24 +40,32 @@ export interface ContiguousConfig {
   fit: FitPolicy;
   // MFT: tamaños de particiones de usuario (KB). La suma debe ser ≤ memUsable.
   partitionsKB: number[];
-  // MVT: compactación habilitada y costo por ranura compactada.
+  // MVT/segmentación: compactación habilitada y costo por ranura compactada.
   compaction: boolean;
   compactionCostPerSlot: number;
   cpu: CpuPolicy;
   quantum: number; // sólo RR
   maxTime: number; // cutoff defensivo
+  // Paginación: tamaño de cada marco/página (KB). Default 1.
+  pageSizeKB: number;
 }
 
-// Una "ranura" de memoria contigua. Puede ser una partición fija (MFT) o un hueco
-// dinámico (MVT). En MFT el tamaño no cambia; en MVT los huecos se fragmentan y
-// fusionan.
+// Una "ranura" de memoria. En MFT es una partición fija, en MVT un hueco
+// dinámico, en paginación un marco fijo, en segmentación un hueco asignado a
+// un segmento de un proceso.
 export interface MemorySlot {
   id: string;
   start: number; // dirección base en KB
   size: number; // tamaño total
   occupiedBy: ProcessId | null;
-  usedBy: number; // KB efectivamente usados por el proceso (≤ size en MFT)
+  usedBy: number; // KB efectivamente usados por el proceso (≤ size en MFT/paging)
   isOs?: boolean;
+  // Paginación: índice de página dentro del proceso (cuál página del proceso
+  // está cargada en este marco).
+  pageIndex?: number;
+  // Segmentación: índice y etiqueta del segmento del proceso en esta ranura.
+  segmentIndex?: number;
+  segmentLabel?: string;
 }
 
 export type EventKind =

@@ -5,6 +5,7 @@ import type {
   ProcessId,
   ProcessRuntime,
   ProcessSpec,
+  Scheme,
   Snapshot,
   SimulationResult,
   TickEvent,
@@ -18,6 +19,11 @@ interface MutableState {
   processes: Record<ProcessId, ProcessRuntime>;
   compactionLeft: number;
   quantumLeft: number;
+}
+
+function segmentsOf(spec: ProcessSpec): number[] {
+  if (spec.segments && spec.segments.length > 0) return spec.segments;
+  return [spec.size];
 }
 
 function freshState(cfg: ContiguousConfig, procs: ProcessSpec[]): MutableState {
@@ -44,8 +50,21 @@ function freshState(cfg: ContiguousConfig, procs: ProcessSpec[]): MutableState {
       });
       cursor += size;
     });
+  } else if (cfg.scheme === "paging") {
+    const pageSize = Math.max(1, cfg.pageSizeKB || 1);
+    const userMem = Math.max(0, cfg.totalMemoryKB - cfg.osSizeKB);
+    const nFrames = Math.floor(userMem / pageSize);
+    for (let i = 0; i < nFrames; i++) {
+      slots.push({
+        id: `frame-${i}`,
+        start: cfg.osSizeKB + i * pageSize,
+        size: pageSize,
+        occupiedBy: null,
+        usedBy: 0,
+      });
+    }
   } else {
-    // MVT: un único hueco libre con todo lo que sobra del SO.
+    // MVT y segmentación: un único hueco libre con todo lo que sobra del SO.
     slots.push({
       id: "hole-0",
       start: cfg.osSizeKB,
@@ -80,15 +99,13 @@ function freshState(cfg: ContiguousConfig, procs: ProcessSpec[]): MutableState {
 function findFit(
   slots: MemorySlot[],
   size: number,
-  fit: ContiguousConfig["fit"],
-  scheme: ContiguousConfig["scheme"]
+  fit: ContiguousConfig["fit"]
 ): number | null {
   const candidates: number[] = [];
   slots.forEach((s, idx) => {
     if (s.isOs) return;
     if (s.occupiedBy !== null) return;
-    const free = scheme === "mft" ? s.size : s.size; // huecos puros
-    if (free >= size) candidates.push(idx);
+    if (s.size >= size) candidates.push(idx);
   });
   if (candidates.length === 0) return null;
 
@@ -106,26 +123,11 @@ function findFit(
   }
 }
 
-function allocate(
-  state: MutableState,
-  scheme: ContiguousConfig["scheme"],
-  idx: number,
-  pid: ProcessId
-): void {
+function carveMVT(state: MutableState, idx: number, size: number): MemorySlot {
+  // Talla el hueco al tamaño pedido. Devuelve la ranura tallada (la misma).
   const slot = state.slots[idx];
-  const size = state.processes[pid].spec.size;
-
-  if (scheme === "mft") {
-    slot.occupiedBy = pid;
-    slot.usedBy = size;
-    return;
-  }
-
-  // MVT: talla el hueco al tamaño exacto y, si sobra, deja un nuevo hueco.
   const remainder = slot.size - size;
   slot.size = size;
-  slot.occupiedBy = pid;
-  slot.usedBy = size;
   if (remainder > 0) {
     state.slots.splice(idx + 1, 0, {
       id: `hole-${slot.start + size}`,
@@ -135,37 +137,127 @@ function allocate(
       usedBy: 0,
     });
   }
+  return slot;
+}
+
+function tryAllocate(
+  state: MutableState,
+  cfg: ContiguousConfig,
+  pid: ProcessId
+): boolean {
+  const spec = state.processes[pid].spec;
+
+  if (cfg.scheme === "mft") {
+    const idx = findFit(state.slots, spec.size, cfg.fit);
+    if (idx === null) return false;
+    const slot = state.slots[idx];
+    slot.occupiedBy = pid;
+    slot.usedBy = spec.size;
+    return true;
+  }
+
+  if (cfg.scheme === "mvt") {
+    const idx = findFit(state.slots, spec.size, cfg.fit);
+    if (idx === null) return false;
+    const slot = carveMVT(state, idx, spec.size);
+    slot.occupiedBy = pid;
+    slot.usedBy = spec.size;
+    return true;
+  }
+
+  if (cfg.scheme === "paging") {
+    const pageSize = Math.max(1, cfg.pageSizeKB || 1);
+    const pagesNeeded = Math.ceil(spec.size / pageSize);
+    const freeFrames: number[] = [];
+    for (let i = 0; i < state.slots.length; i++) {
+      const s = state.slots[i];
+      if (s.isOs) continue;
+      if (s.occupiedBy === null) freeFrames.push(i);
+      if (freeFrames.length === pagesNeeded) break;
+    }
+    if (freeFrames.length < pagesNeeded) return false;
+    let remainingBytes = spec.size;
+    for (let p = 0; p < pagesNeeded; p++) {
+      const slot = state.slots[freeFrames[p]];
+      slot.occupiedBy = pid;
+      slot.pageIndex = p;
+      const fill = Math.min(pageSize, remainingBytes);
+      slot.usedBy = fill;
+      remainingBytes -= fill;
+    }
+    return true;
+  }
+
+  // segmentation: all-or-nothing con rollback en caso de fallo.
+  const segs = segmentsOf(spec);
+  const backup = state.slots.map((s) => ({ ...s }));
+  for (let segI = 0; segI < segs.length; segI++) {
+    const size = segs[segI];
+    const idx = findFit(state.slots, size, cfg.fit);
+    if (idx === null) {
+      state.slots = backup;
+      return false;
+    }
+    const slot = carveMVT(state, idx, size);
+    slot.occupiedBy = pid;
+    slot.usedBy = size;
+    slot.segmentIndex = segI;
+    slot.segmentLabel = `S${segI}`;
+  }
+  return true;
+}
+
+function coalesceAll(state: MutableState): void {
+  // Fusiona ranuras libres consecutivas (excluyendo SO).
+  for (let i = state.slots.length - 1; i > 0; i--) {
+    const cur = state.slots[i];
+    const prev = state.slots[i - 1];
+    if (
+      !cur.isOs &&
+      !prev.isOs &&
+      cur.occupiedBy === null &&
+      prev.occupiedBy === null
+    ) {
+      prev.size += cur.size;
+      state.slots.splice(i, 1);
+    }
+  }
 }
 
 function release(
   state: MutableState,
-  scheme: ContiguousConfig["scheme"],
+  scheme: Scheme,
   pid: ProcessId
 ): void {
-  const idx = state.slots.findIndex((s) => s.occupiedBy === pid);
-  if (idx === -1) return;
-  const slot = state.slots[idx];
-  slot.occupiedBy = null;
-  slot.usedBy = 0;
+  if (scheme === "mft") {
+    const slot = state.slots.find((s) => s.occupiedBy === pid);
+    if (!slot) return;
+    slot.occupiedBy = null;
+    slot.usedBy = 0;
+    return;
+  }
 
-  if (scheme === "mvt") {
-    // Coalescing: fusionar con vecinos libres.
-    const i = idx;
-    if (i + 1 < state.slots.length) {
-      const next = state.slots[i + 1];
-      if (!next.isOs && next.occupiedBy === null) {
-        slot.size += next.size;
-        state.slots.splice(i + 1, 1);
+  if (scheme === "paging") {
+    for (const slot of state.slots) {
+      if (slot.occupiedBy === pid) {
+        slot.occupiedBy = null;
+        slot.usedBy = 0;
+        slot.pageIndex = undefined;
       }
     }
-    if (i - 1 >= 0) {
-      const prev = state.slots[i - 1];
-      if (!prev.isOs && prev.occupiedBy === null) {
-        prev.size += slot.size;
-        state.slots.splice(i, 1);
-      }
+    return;
+  }
+
+  // MVT y segmentación: liberar todas las ranuras del proceso y fusionar.
+  for (const slot of state.slots) {
+    if (slot.occupiedBy === pid) {
+      slot.occupiedBy = null;
+      slot.usedBy = 0;
+      slot.segmentIndex = undefined;
+      slot.segmentLabel = undefined;
     }
   }
+  coalesceAll(state);
 }
 
 function totalFree(slots: MemorySlot[]): number {
@@ -175,8 +267,9 @@ function totalFree(slots: MemorySlot[]): number {
 }
 
 function compact(state: MutableState): number {
-  // Compacta MVT: empuja procesos al inicio, deja un único hueco al final.
-  // "Ranuras compactadas" = cantidad de huecos no terminales que se eliminan.
+  // Compacta (MVT/segmentación): empuja todo lo ocupado al inicio,
+  // deja un único hueco al final. Devuelve la cantidad de ranuras libres
+  // que se eliminaron (≥1).
   const occupied = state.slots.filter((s) => !s.isOs && s.occupiedBy !== null);
   const osSlot = state.slots.find((s) => s.isOs)!;
   const totalFreeKB = totalFree(state.slots);
@@ -204,13 +297,47 @@ function compact(state: MutableState): number {
   return Math.max(1, ranuras);
 }
 
+function pendingMinForScheme(
+  state: MutableState,
+  cfg: ContiguousConfig
+): number | null {
+  if (state.waitQueue.length === 0) return null;
+  if (cfg.scheme === "segmentation") {
+    // El "más chico que está esperando hueco" es el mínimo de todos los
+    // segmentos pendientes — si entra algo de ese tamaño, la espera puede
+    // moverse aunque sea para un sub-proceso.
+    let m = Infinity;
+    for (const pid of state.waitQueue) {
+      const spec = state.processes[pid].spec;
+      for (const seg of segmentsOf(spec)) {
+        if (seg < m) m = seg;
+      }
+    }
+    return m === Infinity ? null : m;
+  }
+  // Resto: tamaño total del proceso.
+  return Math.min(
+    ...state.waitQueue.map((pid) => state.processes[pid].spec.size)
+  );
+}
+
 function computeFragmentation(
   slots: MemorySlot[],
-  scheme: ContiguousConfig["scheme"],
+  scheme: Scheme,
   pendingMinSize: number | null
 ): { internal: number; external: number } {
   let internal = 0;
   let external = 0;
+
+  if (scheme === "paging") {
+    // Sólo frag interna en la última página de cada proceso.
+    for (const s of slots) {
+      if (s.isOs) continue;
+      if (s.occupiedBy !== null) internal += s.size - s.usedBy;
+    }
+    return { internal, external: 0 };
+  }
+
   for (const s of slots) {
     if (s.isOs) continue;
     if (s.occupiedBy !== null) {
@@ -219,7 +346,6 @@ function computeFragmentation(
       if (pendingMinSize !== null && s.size < pendingMinSize) {
         external += s.size;
       } else if (pendingMinSize === null) {
-        // sin pendientes: la frag externa es el total libre disperso (suma de huecos)
         external += s.size;
       }
     }
@@ -234,10 +360,7 @@ function snapshot(
   events: TickEvent[],
   ganttCell: string
 ): Snapshot {
-  const pendingSizes = state.waitQueue.map(
-    (pid) => state.processes[pid].spec.size
-  );
-  const pendingMin = pendingSizes.length > 0 ? Math.min(...pendingSizes) : null;
+  const pendingMin = pendingMinForScheme(state, cfg);
   const { internal, external } = computeFragmentation(
     state.slots,
     cfg.scheme,
@@ -274,18 +397,58 @@ export function validate(
     if (sum > cfg.totalMemoryKB - cfg.osSizeKB)
       errs.push("La suma de particiones excede la memoria utilizable.");
   }
+  if (cfg.scheme === "paging" && (!cfg.pageSizeKB || cfg.pageSizeKB <= 0)) {
+    errs.push("El tamaño de página debe ser > 0.");
+  }
   if (cfg.cpu === "rr" && cfg.quantum <= 0)
     errs.push("El quantum debe ser > 0 para Round Robin.");
   if (procs.length === 0) errs.push("Ingresá al menos un proceso.");
+
+  const userMem = cfg.totalMemoryKB - cfg.osSizeKB;
+
   for (const p of procs) {
-    const usable =
-      cfg.scheme === "mft"
-        ? Math.max(...cfg.partitionsKB, 0)
-        : cfg.totalMemoryKB - cfg.osSizeKB;
-    if (p.size > usable)
-      errs.push(`${p.id} (${p.size}K) no entra en la memoria utilizable.`);
+    if (cfg.scheme === "mft") {
+      const usable = Math.max(...cfg.partitionsKB, 0);
+      if (p.size > usable)
+        errs.push(`${p.id} (${p.size}K) no entra en la memoria utilizable.`);
+    } else if (cfg.scheme === "mvt") {
+      if (p.size > userMem)
+        errs.push(`${p.id} (${p.size}K) no entra en la memoria utilizable.`);
+    } else if (cfg.scheme === "paging") {
+      const pageSize = Math.max(1, cfg.pageSizeKB || 1);
+      const nFrames = Math.floor(userMem / pageSize);
+      const pagesNeeded = Math.ceil(p.size / pageSize);
+      if (pagesNeeded > nFrames)
+        errs.push(`${p.id} (${p.size}K) no entra en la memoria utilizable.`);
+    } else if (cfg.scheme === "segmentation") {
+      const segs = segmentsOf(p);
+      const sum = segs.reduce((a, b) => a + b, 0);
+      if (sum > userMem)
+        errs.push(`${p.id} (${sum}K) no entra en la memoria utilizable.`);
+      const maxSeg = Math.max(...segs, 0);
+      if (maxSeg > userMem)
+        errs.push(`${p.id} (${maxSeg}K) no entra en la memoria utilizable.`);
+    }
   }
   return errs;
+}
+
+function sizeFor(
+  state: MutableState,
+  cfg: ContiguousConfig,
+  pid: ProcessId
+): number {
+  // Memoria total que necesita este proceso para entrar (para decidir si
+  // compactar). Para segmentación, suma de segmentos.
+  const spec = state.processes[pid].spec;
+  if (cfg.scheme === "segmentation") {
+    return segmentsOf(spec).reduce((a, b) => a + b, 0);
+  }
+  return spec.size;
+}
+
+function compactionApplies(scheme: Scheme): boolean {
+  return scheme === "mvt" || scheme === "segmentation";
 }
 
 export function simulate(
@@ -331,19 +494,17 @@ export function simulate(
     while (progress) {
       progress = false;
       for (const pid of [...state.waitQueue]) {
-        const size = state.processes[pid].spec.size;
-        const idx = findFit(state.slots, size, cfg.fit, cfg.scheme);
-        if (idx !== null) {
-          allocate(state, cfg.scheme, idx, pid);
+        const allocated = tryAllocate(state, cfg, pid);
+        if (allocated) {
           state.waitQueue = state.waitQueue.filter((x) => x !== pid);
           state.readyQueue.push(pid);
           state.processes[pid].state = "ready";
           events.push({ kind: "load", pid });
           progress = true;
         } else if (
-          cfg.scheme === "mvt" &&
+          compactionApplies(cfg.scheme) &&
           cfg.compaction &&
-          totalFree(state.slots) >= size
+          totalFree(state.slots) >= sizeFor(state, cfg, pid)
         ) {
           const slots = compact(state);
           state.compactionLeft = slots * cfg.compactionCostPerSlot;
@@ -356,7 +517,6 @@ export function simulate(
           state.compactionLeft -= 1;
           snapshots.push(snapshot(state, cfg, t, events, ganttCell));
           if (allFinished(state)) return finish(snapshots, cfg, procs, warnings);
-          // continue al siguiente tick sin ejecutar 4 ni 5
           progress = false;
           break;
         } else {
