@@ -77,6 +77,7 @@ export function ContiguousMode({
               setProcesses={setProcesses}
               unit={unit}
               showPriority={config.cpu === "priority"}
+              scheme={config.scheme}
             />
           )}
         </div>

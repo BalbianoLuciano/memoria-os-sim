@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { colorFor } from "@/lib/colors";
-import type { MemorySlot } from "@/lib/types";
+import type { MemorySlot, Scheme } from "@/lib/types";
 import { toDisplay, type Unit } from "@/lib/units";
 import { useT } from "./LanguageProvider";
 
@@ -10,12 +10,14 @@ interface Props {
   slots: MemorySlot[];
   total: number;
   unit: Unit;
-  scheme: "mft" | "mvt";
+  scheme: Scheme;
   running: string | null;
 }
 
 export function MemoryColumn({ slots, total, unit, scheme, running }: Props) {
   const { t } = useT();
+  // Para paginación, indexamos los marcos en orden visual (ignorando SO).
+  let frameCounter = 0;
   return (
     <div className="flex flex-col h-full w-full max-w-[260px] mx-auto">
       <div className="flex items-baseline justify-between mb-2">
@@ -35,10 +37,24 @@ export function MemoryColumn({ slots, total, unit, scheme, running }: Props) {
               : slot.occupiedBy
                 ? colorFor(slot.occupiedBy)
                 : null;
-            const innerUsedPct =
-              scheme === "mft" && slot.occupiedBy
-                ? (slot.usedBy / slot.size) * 100
-                : 100;
+            const showsInternalStripe =
+              (scheme === "mft" || scheme === "paging") &&
+              slot.occupiedBy !== null &&
+              slot.usedBy < slot.size;
+            const innerUsedPct = showsInternalStripe
+              ? (slot.usedBy / slot.size) * 100
+              : 100;
+            const frameIdx = !slot.isOs && scheme === "paging" ? frameCounter++ : -1;
+            const subLabel =
+              scheme === "paging" && slot.occupiedBy && slot.pageIndex !== undefined
+                ? `f${frameIdx}·p${slot.pageIndex}`
+                : scheme === "paging" && !slot.isOs && !slot.occupiedBy
+                  ? `f${frameIdx}`
+                  : scheme === "segmentation" &&
+                      slot.occupiedBy &&
+                      slot.segmentLabel
+                    ? slot.segmentLabel
+                    : null;
             return (
               <motion.div
                 key={slot.id + ":" + slot.start}
@@ -77,21 +93,26 @@ export function MemoryColumn({ slots, total, unit, scheme, running }: Props) {
                         ▶
                       </span>
                     )}
-                    <div className="text-center font-mono">
+                    <div className="text-center font-mono leading-tight">
                       <div
                         className="text-xs font-bold"
                         style={{ color: color!.hex }}
                       >
                         {slot.occupiedBy}
+                        {subLabel && (
+                          <span className="ml-1 text-[9px] opacity-80">
+                            {subLabel}
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-zinc-400">
                         {toDisplay(slot.usedBy, unit)}
-                        {scheme === "mft" && slot.usedBy < slot.size
+                        {showsInternalStripe
                           ? ` / ${toDisplay(slot.size, unit)}`
                           : ""}
                       </div>
                     </div>
-                    {scheme === "mft" && slot.usedBy < slot.size && (
+                    {showsInternalStripe && (
                       <div
                         className="absolute left-0 right-0 bottom-0 bg-[repeating-linear-gradient(45deg,rgba(255,176,32,0.12)_0_6px,transparent_6px_12px)]"
                         style={{
@@ -104,6 +125,7 @@ export function MemoryColumn({ slots, total, unit, scheme, running }: Props) {
                 ) : (
                   <div className="h-full w-full bg-[repeating-linear-gradient(135deg,rgba(255,255,255,0.04)_0_8px,transparent_8px_16px)] flex items-center justify-center">
                     <span className="font-mono text-[10px] text-zinc-500">
+                      {subLabel ? `${subLabel} · ` : ""}
                       {t("memory.free")} · {toDisplay(slot.size, unit)}
                     </span>
                   </div>

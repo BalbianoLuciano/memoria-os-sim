@@ -3,7 +3,7 @@
 import { Trash2, Plus } from "lucide-react";
 import { colorFor } from "@/lib/colors";
 import { toDisplay, parseKB, type Unit } from "@/lib/units";
-import type { ProcessSpec } from "@/lib/types";
+import type { ProcessSpec, Scheme } from "@/lib/types";
 import { useT } from "./LanguageProvider";
 
 interface Props {
@@ -11,6 +11,27 @@ interface Props {
   setProcesses: (next: ProcessSpec[]) => void;
   unit: Unit;
   showPriority: boolean;
+  scheme: Scheme;
+}
+
+function segmentsToString(segs: number[] | undefined, unit: Unit): string {
+  if (!segs || segs.length === 0) return "";
+  return segs.map((kb) => toDisplay(kb, unit)).join(", ");
+}
+
+function parseSegments(raw: string): number[] | null {
+  const parts = raw
+    .split(/[,;]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  if (parts.length === 0) return [];
+  const vals: number[] = [];
+  for (const p of parts) {
+    const kb = parseKB(p);
+    if (kb === null || kb <= 0) return null;
+    vals.push(kb);
+  }
+  return vals;
 }
 
 export function ProcessTable({
@@ -18,8 +39,10 @@ export function ProcessTable({
   setProcesses,
   unit,
   showPriority,
+  scheme,
 }: Props) {
   const { t } = useT();
+  const showSegments = scheme === "segmentation";
 
   function update(idx: number, patch: Partial<ProcessSpec>) {
     const copy = processes.map((p, i) => (i === idx ? { ...p, ...patch } : p));
@@ -62,6 +85,11 @@ export function ProcessTable({
               <th className="text-right pb-1">{t("table.col.arrival")}</th>
               <th className="text-right pb-1">{t("table.col.burst")}</th>
               <th className="text-right pb-1">{t("table.col.size")}</th>
+              {showSegments && (
+                <th className="text-left pb-1 pl-2">
+                  {t("table.col.segments")}
+                </th>
+              )}
               {showPriority && (
                 <th className="text-right pb-1">{t("table.col.priority")}</th>
               )}
@@ -118,6 +146,34 @@ export function ProcessTable({
                       className="w-20 bg-transparent px-1 py-0.5 text-right text-zinc-200"
                     />
                   </td>
+                  {showSegments && (
+                    <td className="pl-2">
+                      <input
+                        type="text"
+                        defaultValue={segmentsToString(p.segments, unit)}
+                        placeholder={t("table.col.segments.placeholder")}
+                        onBlur={(e) => {
+                          const segs = parseSegments(e.target.value);
+                          if (segs === null) {
+                            e.target.value = segmentsToString(
+                              p.segments,
+                              unit
+                            );
+                            return;
+                          }
+                          const patch: Partial<ProcessSpec> = {
+                            segments: segs.length > 0 ? segs : undefined,
+                          };
+                          if (segs.length > 0) {
+                            patch.size = segs.reduce((a, b) => a + b, 0);
+                          }
+                          update(idx, patch);
+                        }}
+                        key={`${segmentsToString(p.segments, unit)}-${unit}`}
+                        className="w-28 bg-ink-800/40 border border-ink-800 rounded px-1 py-0.5 text-zinc-200 text-[10px]"
+                      />
+                    </td>
+                  )}
                   {showPriority && (
                     <td>
                       <input

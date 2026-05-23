@@ -43,6 +43,8 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
           options={[
             { id: "mft", label: "MFT" },
             { id: "mvt", label: "MVT" },
+            { id: "paging", label: "PAG" },
+            { id: "segmentation", label: "SEG" },
           ]}
           onChange={(v) =>
             setConfig({ ...config, scheme: v as ContiguousConfig["scheme"] })
@@ -50,19 +52,21 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
         />
       </Field>
 
-      <Field label={t("config.fit")}>
-        <Segmented
-          value={config.fit}
-          options={[
-            { id: "first", label: "FF" },
-            { id: "best", label: "BF" },
-            { id: "worst", label: "WF" },
-          ]}
-          onChange={(v) =>
-            setConfig({ ...config, fit: v as ContiguousConfig["fit"] })
-          }
-        />
-      </Field>
+      {config.scheme !== "paging" && (
+        <Field label={t("config.fit")}>
+          <Segmented
+            value={config.fit}
+            options={[
+              { id: "first", label: "FF" },
+              { id: "best", label: "BF" },
+              { id: "worst", label: "WF" },
+            ]}
+            onChange={(v) =>
+              setConfig({ ...config, fit: v as ContiguousConfig["fit"] })
+            }
+          />
+        </Field>
+      )}
 
       <Field label={t("config.cpu")}>
         <Segmented
@@ -112,9 +116,23 @@ export function ConfigPanel({ config, setConfig, unit, onLoadPreset }: Props) {
         />
       </Field>
 
-      {config.scheme === "mft" ? (
+      {config.scheme === "mft" && (
         <Partitions config={config} setConfig={setConfig} unit={unit} />
-      ) : (
+      )}
+
+      {config.scheme === "paging" && (
+        <Field label={t("config.pageSize")}>
+          <UnitInput
+            valueKB={config.pageSizeKB}
+            unit={unit}
+            onChangeKB={(v) =>
+              setConfig({ ...config, pageSizeKB: Math.max(1, v) })
+            }
+          />
+        </Field>
+      )}
+
+      {(config.scheme === "mvt" || config.scheme === "segmentation") && (
         <div className="flex items-center justify-between border border-ink-800 rounded px-2 py-1.5">
           <span className="font-mono text-[11px] text-zinc-300">
             {t("config.compaction")}
